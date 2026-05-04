@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { fetchMovieById } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function WatchMovie() {
   const { id } = useParams();
@@ -12,8 +13,15 @@ export default function WatchMovie() {
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const timeoutRef = useRef(null);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
+    // Nếu chưa đăng nhập, đá về trang login ngay lập tức
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
     const loadData = async () => {
       setIsLoading(true);
       const data = await fetchMovieById(id);
@@ -37,7 +45,7 @@ export default function WatchMovie() {
     };
 
     loadData();
-  }, [id, location, navigate]);
+  }, [id, location, navigate, isAuthenticated]);
 
   // Handle auto-hiding the top navigation bar when mouse is still
   useEffect(() => {

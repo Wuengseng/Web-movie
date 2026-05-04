@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Play, Plus, ThumbsUp, X, Loader2 } from 'lucide-react';
 import { fetchMovieById, fetchAllMovies, getMoviesByCategory } from '../utils/api';
 import MovieRow from '../components/MovieRow';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function MovieDetail() {
   const { id } = useParams();
@@ -11,6 +12,7 @@ export default function MovieDetail() {
   const [similarMovies, setSimilarMovies] = useState([]);
   const [showTrailer, setShowTrailer] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     // Scroll to top when changing movie
@@ -31,6 +33,19 @@ export default function MovieDetail() {
 
     loadData();
   }, [id, navigate]);
+
+  const handlePlay = (episodeId = null) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    if (episodeId) {
+      navigate(`/watch/${movie.id}?episode=${episodeId}`);
+    } else {
+      navigate(`/watch/${movie.id}`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -77,7 +92,7 @@ export default function MovieDetail() {
 
             <div className="flex items-center justify-center md:justify-start gap-4 mb-8">
               <button 
-                onClick={() => navigate(`/watch/${movie.id}`)}
+                onClick={() => handlePlay()}
                 className="bg-primary text-white font-bold py-3 px-8 rounded flex items-center gap-2 hover:bg-primary/80 transition shadow-lg shadow-primary/30"
               >
                 <Play className="w-6 h-6 fill-white" />
@@ -132,7 +147,7 @@ export default function MovieDetail() {
             {movie.episodes.map((episode, index) => (
               <div 
                 key={episode.id} 
-                onClick={() => navigate(`/watch/${movie.id}?episode=${episode.id}`)}
+                onClick={() => handlePlay(episode.id)}
                 className="flex items-center gap-4 p-4 hover:bg-gray-800/50 rounded-lg cursor-pointer transition border border-transparent hover:border-gray-700 group"
               >
                 <h3 className="text-2xl font-bold text-gray-500 w-8">{index + 1}</h3>

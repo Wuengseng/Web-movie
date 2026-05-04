@@ -2,11 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Play, Info, Loader2 } from 'lucide-react';
 import { fetchAllMovies, getMoviesByCategory } from '../utils/api';
 import MovieRow from '../components/MovieRow';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Home() {
   const [heroMovie, setHeroMovie] = useState(null);
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const loadMovies = async () => {
@@ -23,6 +27,14 @@ export default function Home() {
 
     loadMovies();
   }, []);
+
+  const handlePlay = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    } else {
+      navigate(`/watch/${heroMovie.id}`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -47,14 +59,17 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
           </div>
           
-          <div className="absolute inset-0 pt-32 px-4 md:px-12 flex flex-col justify-center max-w-2xl">
+          <div className="absolute inset-0 pt-32 px-4 md:px-12 flex flex-col justify-center mb-24 md:mb-32 max-w-2xl">
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-4">{heroMovie.title}</h1>
             <p className="text-gray-200 text-sm md:text-lg mb-8 line-clamp-3 leading-relaxed">
               {heroMovie.overview}
             </p>
             
             <div className="flex items-center gap-4">
-              <button className="bg-white text-black font-bold py-2 md:py-3 px-6 md:px-8 rounded flex items-center gap-2 hover:bg-white/80 transition">
+              <button 
+                onClick={handlePlay}
+                className="bg-white text-black font-bold py-2 md:py-3 px-6 md:px-8 rounded flex items-center gap-2 hover:bg-white/80 transition"
+              >
                 <Play className="w-6 h-6 fill-black" />
                 Phát
               </button>

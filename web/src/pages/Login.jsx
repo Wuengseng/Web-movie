@@ -1,19 +1,70 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { loginUser, registerUser, loginWithGoogle } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({ fullname: '', email: '', password: '' });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const toggleMode = () => setIsLogin(!isLogin);
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setError('');
+    setFormData({ fullname: '', email: '', password: '' });
+  };
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate login/register then redirect to home
-    console.log(isLogin ? "Đăng nhập thành công" : "Đăng ký thành công");
-    navigate('/');
+    setError('');
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        const data = await loginUser(formData.email, formData.password);
+        login(data.access_token, formData.email);
+        navigate('/');
+      } else {
+        const data = await registerUser(formData.fullname, formData.email, formData.password);
+        login(data.access_token, formData.email);
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const data = await loginWithGoogle(credentialResponse.credential);
+      // Lấy tạm email từ payload token để hiển thị ở navbar (sau này có thể giải mã JWT để lấy chuẩn hơn)
+      // Tạm thời dùng 'Google User' hoặc parse base64
+      login(data.access_token, "Người dùng Google");
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Đăng nhập Google thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
   };
 
   return (
@@ -37,6 +88,13 @@ export default function Login() {
           </p>
         </div>
 
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-3 text-red-500">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           <motion.form 
             key={isLogin ? 'login' : 'register'}
@@ -52,9 +110,12 @@ export default function Login() {
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary w-5 h-5" />
                 <input 
                   type="text" 
+                  name="fullname"
+                  value={formData.fullname}
+                  onChange={handleChange}
                   placeholder="Họ và tên" 
                   className="w-full bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 text-white placeholder:text-textSecondary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                  required
+                  required={!isLogin}
                 />
               </div>
             )}
@@ -63,6 +124,9 @@ export default function Login() {
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary w-5 h-5" />
               <input 
                 type="email" 
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 placeholder="Email của bạn" 
                 className="w-full bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 text-white placeholder:text-textSecondary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 required
@@ -73,9 +137,13 @@ export default function Login() {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary w-5 h-5" />
               <input 
                 type="password" 
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
                 placeholder="Mật khẩu" 
                 className="w-full bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 text-white placeholder:text-textSecondary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 required
+                minLength={6}
               />
             </div>
 
@@ -89,10 +157,17 @@ export default function Login() {
 
             <button 
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-all hover:gap-3"
+              disabled={isLoading}
+              className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-all hover:gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isLogin ? "Đăng nhập" : "Đăng ký"}
-              <ArrowRight className="w-5 h-5" />
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  {isLogin ? "Đăng nhập" : "Đăng ký"}
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </button>
           </motion.form>
         </AnimatePresence>
@@ -103,18 +178,16 @@ export default function Login() {
           <div className="h-px bg-white/10 flex-1"></div>
         </div>
 
-        <button 
-          className="mt-6 w-full bg-white text-black font-medium py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
-          type="button"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Tiếp tục với Google
-        </button>
+        <div className="mt-6 flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            theme="filled_black"
+            shape="rectangular"
+            text="continue_with"
+            width="100%"
+          />
+        </div>
 
         <div className="mt-8 text-center text-sm text-textSecondary">
           {isLogin ? "Chưa có tài khoản?" : "Đã có tài khoản?"}

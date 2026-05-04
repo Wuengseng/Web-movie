@@ -1,0 +1,8 @@
+[
+  {
+    "email": "test@gmail.com",
+    "fullname": "Tài khoản Test",
+    "hashed_password": "$2b$12$a63BfG..MHim8dwHeXl.aORtV1Gz8EyvEluecJDE.0Hw8QzpsC18K",
+    "created_at": "2024-05-04T00:00:00Z"
+  }
+]
