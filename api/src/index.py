@@ -19,7 +19,7 @@ app = FastAPI(lifespan=lifespan)
 # Cấu hình CORS để Frontend (React) có thể gọi được
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex="https?://(localhost|127\.0\.0\.1)(:[0-9]+)?", 
+    allow_origin_regex="https?://(localhost|127\.0\.0\.1)(:[0-9]+)?|https://.*\.vercel\.app", 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,7 +28,9 @@ app.add_middleware(
 @app.post("/api/auth/register", response_model=Token)
 async def register(user: UserCreate):
     if db.client is None:
-        raise HTTPException(status_code=500, detail="Chưa kết nối database!")
+        await connect_to_mongo()
+    if db.client is None:
+        raise HTTPException(status_code=500, detail="Lỗi kết nối DB trên Vercel")
     
     # Kiểm tra email đã tồn tại chưa
     existing_user = await db.db["users"].find_one({"email": user.email})
@@ -55,7 +57,9 @@ async def register(user: UserCreate):
 @app.post("/api/auth/login", response_model=Token)
 async def login(user: UserLogin):
     if db.client is None:
-        raise HTTPException(status_code=500, detail="Chưa kết nối database!")
+        await connect_to_mongo()
+    if db.client is None:
+        raise HTTPException(status_code=500, detail="Lỗi kết nối DB trên Vercel")
         
     db_user = await db.db["users"].find_one({"email": user.email})
     if not db_user:
@@ -87,7 +91,9 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 @app.post("/api/auth/google", response_model=Token)
 async def google_login(google_token: GoogleToken):
     if db.client is None:
-        raise HTTPException(status_code=500, detail="Chưa kết nối database!")
+        await connect_to_mongo()
+    if db.client is None:
+        raise HTTPException(status_code=500, detail="Lỗi kết nối DB trên Vercel")
     
     try:
         # Xác minh token từ Google
@@ -142,7 +148,9 @@ def get_server_status():
 @app.post("/api/movies")
 async def create_movie(movie: Movie):
     if db.client is None:
-        raise HTTPException(status_code=500, detail="Chưa kết nối database!")
+        await connect_to_mongo()
+    if db.client is None:
+        raise HTTPException(status_code=500, detail="Lỗi kết nối DB trên Vercel")
     
     movie_dict = movie.model_dump()
     # Generate auto-increment ID if not provided (simplified)
@@ -156,7 +164,9 @@ async def create_movie(movie: Movie):
 @app.get("/api/movies")
 async def get_movies():
     if db.client is None:
-        raise HTTPException(status_code=500, detail="Chưa kết nối database!")
+        await connect_to_mongo()
+    if db.client is None:
+        raise HTTPException(status_code=500, detail="Lỗi kết nối DB trên Vercel")
     
     movies = await db.db["movies"].find({}, {"_id": 0}).to_list(100)
     return movies
