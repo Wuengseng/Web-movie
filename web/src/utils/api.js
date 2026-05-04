@@ -4,6 +4,8 @@ export const fetchAllMovies = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/movies`);
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Chi tiết lỗi từ Backend:", errorText);
       throw new Error('Không thể tải dữ liệu phim');
     }
     return await response.json();

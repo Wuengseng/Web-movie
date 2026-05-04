@@ -16,6 +16,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+import traceback
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    error_msg = traceback.format_exc()
+    print("LOI SERVER:", error_msg)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Lỗi nội bộ Server: " + str(exc), "traceback": error_msg}
+    )
 # Cấu hình CORS để Frontend (React) có thể gọi được
 app.add_middleware(
     CORSMiddleware,
