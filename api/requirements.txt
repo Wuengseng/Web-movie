@@ -3,4 +3,8 @@ uvicorn
 python-dotenv
 requests
 motor
-pydantic-settings
+pydantic-settings
+bcrypt
+PyJWT
+google-auth
+email-validator
